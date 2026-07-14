@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+<title>RC Car</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg:      #090909;
+    --surface: #111;
+    --border:  #1f1f1f;
+    --cyan:    #00e5ff;
+    --red:     #ff3b3b;
+    --green:   #00ff88;
+    --muted:   #444;
+    --text:    #ccc;
+  }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: Arial, sans-serif;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 20px 16px 48px;
+    gap: 18px;
+    touch-action: none;
+    -webkit-user-select: none;
+    user-select: none;
+  }
+  h1 { font-size: 20px; letter-spacing: 4px; color: var(--cyan); }
+  .status-row {
+    display: flex; align-items: center; gap: 8px;
+    font-size: 11px; letter-spacing: 2px; color: var(--muted);
+  }
+  .dot {
+    width: 7px; height: 7px; border-radius: 50%;
+    background: var(--muted); transition: background .3s;
+  }
+  .dot.on { background: var(--cyan); }
+  #connectBtn {
+    background: transparent;
+    border: 1.5px solid var(--cyan);
+    color: var(--cyan); border-radius: 10px;
+    padding: 9px 30px; font-size: 12px;
+    letter-spacing: 2px; cursor: pointer;
+  }
+  .tabs {
+    display: flex; gap: 8px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px; padding: 6px;
+    width: 100%; max-width: 320px;
+  }
+  .tab {
+    flex: 1; background: transparent; border: none;
+    border-radius: 10px; color: var(--muted);
+    font-size: 11px; letter-spacing: 1px;
+    padding: 9px 4px; cursor: pointer;
+    transition: background .15s, color .15s;
+  }
+  .tab.active { background: var(--cyan); color: #000; font-weight: bold; }
+  .panel { display: none; flex-direction: column; align-items: center; gap: 16px; width: 100%; }
+  .panel.show { display: flex; }
+  .dpad {
+    display: grid;
+    grid-template-columns: repeat(3, 90px);
+    grid-template-rows: repeat(3, 90px);
+    gap: 10px;
+  }
+  .btn {
+    background: var(--surface);
+    border: 1.5px solid var(--border);
+    border-radius: 18px; color: #fff; font-size: 30px;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    transition: background .07s, border-color .07s, transform .07s;
+  }
+  .btn.active { background: #00e5ff18; border-color: var(--cyan); transform: scale(0.91); }
+  .btn.stop-btn { background: #130000; border-color: var(--red); color: var(--red); font-size: 12px; letter-spacing: 1px; }
+  .btn.stop-btn.active { background: #ff3b3b14; }
+  .empty { visibility: hidden; }
+  .card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 16px; padding: 16px 18px;
+    width: 100%; max-width: 304px;
+  }
+  .card-label { font-size: 10px; letter-spacing: 2px; color: var(--muted); margin-bottom: 12px; }
+  .speed-row { display: flex; align-items: center; gap: 12px; }
+  input[type=range] { flex: 1; accent-color: var(--cyan); }
+  .speed-num { font-size: 22px; color: var(--cyan); min-width: 38px; text-align: right; }
+  .sound-row { display: flex; gap: 10px; }
+  .sound-btn {
+    flex: 1; background: var(--surface);
+    border: 1.5px solid var(--border);
+    border-radius: 14px; color: var(--text);
+    font-size: 12px; padding: 14px 8px; cursor: pointer;
+    display: flex; flex-direction: column; align-items: center; gap: 6px;
+    -webkit-tap-highlight-color: transparent;
+    transition: border-color .1s, transform .1s, color .1s;
+  }
+  .sound-btn .icon { font-size: 22px; }
+  .rec-btn  { border-color: #ff3b3b44; }
+  .rec-btn.active  { border-color: var(--red);   color: var(--red);   transform: scale(0.94); }
+  .play-btn { border-color: #00ff8844; }
+  .play-btn.active { border-color: var(--green); color: var(--green); transform: scale(0.94); }
+  .info-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 16px; padding: 20px;
+    width: 100%; max-width: 304px; text-align: center;
+  }
+  .info-icon { font-size: 38px; margin-bottom: 10px; }
+  .info-title { font-size: 13px; color: var(--cyan); letter-spacing: 2px; margin-bottom: 8px; }
+  .info-desc { font-size: 12px; color: var(--muted); line-height: 1.8; }
+  .e-stop {
+    width: 100%; max-width: 304px; height: 52px;
+    background: #130000; border: 1.5px solid var(--red);
+    border-radius: 14px; color: var(--red);
+    font-size: 13px; letter-spacing: 1px; cursor: pointer;
+  }
+  .e-stop:active { background: #ff3b3b18; }
+  #recStatus {
+    font-size: 11px; letter-spacing: 1px;
+    color: var(--muted); text-align: center;
+    min-height: 16px;
+  }
+</style>
+</head>
+<body>
+
+<h1>&#x1F697; RC CAR</h1>
+<div class="status-row">
+  <div class="dot" id="dot"></div>
+  <span id="statusText">DISCONNECTED</span>
+</div>
+<button id="connectBtn" onclick="connectBLE()">CONNECT</button>
+
+<div class="tabs">
+  <button class="tab active" onclick="switchMode('MANUAL',this)">MANUAL</button>
+  <button class="tab"        onclick="switchMode('AUTO',this)">AUTO</button>
+</div>
+
+<!-- MANUAL -->
+<div class="panel show" id="panel-MANUAL">
+  <div class="dpad">
+    <div class="empty"></div>
+    <button class="btn"
+      ontouchstart="press('F',this)" ontouchend="release(this)"
+      onmousedown="press('F',this)"  onmouseup="release(this)"
+      onmouseleave="release(this)">&#x2191;</button>
+    <div class="empty"></div>
+
+    <button class="btn"
+      ontouchstart="press('L',this)" ontouchend="release(this)"
+      onmousedown="press('L',this)"  onmouseup="release(this)"
+      onmouseleave="release(this)">&#x2190;</button>
+    <button class="btn stop-btn"
+      ontouchstart="press('S',this)" ontouchend="release(this)"
+      onmousedown="press('S',this)"  onmouseup="release(this)"
+      onmouseleave="release(this)">STOP</button>
+    <button class="btn"
+      ontouchstart="press('R',this)" ontouchend="release(this)"
+      onmousedown="press('R',this)"  onmouseup="release(this)"
+      onmouseleave="release(this)">&#x2192;</button>
+
+    <div class="empty"></div>
+    <button class="btn"
+      ontouchstart="press('B',this)" ontouchend="release(this)"
+      onmousedown="press('B',this)"  onmouseup="release(this)"
+      onmouseleave="release(this)">&#x2193;</button>
+    <div class="empty"></div>
+  </div>
+
+  <div class="card">
+    <div class="card-label">SPEED</div>
+    <div class="speed-row">
+      <input type="range" min="80" max="255" value="175"
+        oninput="setSpeed(this.value)">
+      <div class="speed-num" id="speedNum">175</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-label">VOICE MODULE (ISD1820)</div>
+    <div class="sound-row">
+      <button class="sound-btn rec-btn"
+        ontouchstart="recStart(this)" ontouchend="recStop(this)"
+        onmousedown="recStart(this)"  onmouseup="recStop(this)"
+        onmouseleave="recStop(this)">
+        <span class="icon">&#x1F534;</span>
+        <span id="recLabel">HOLD REC</span>
+      </button>
+      <button class="sound-btn play-btn"
+        ontouchstart="playAudio(this)" ontouchend="playRelease(this)"
+        onmousedown="playAudio(this)"  onmouseup="playRelease(this)">
+        <span class="icon">&#x25B6;&#xFE0F;</span>PLAY
+      </button>
+    </div>
+    <div id="recStatus"></div>
+  </div>
+</div>
+
+<!-- AUTO -->
+<div class="panel" id="panel-AUTO">
+  <div class="info-card">
+    <div class="info-icon">&#x1F916;</div>
+    <div class="info-title">AUTO NAV ACTIVE</div>
+    <div class="info-desc">
+      Servo scans left and right.<br>
+      Picks direction with most space.<br>
+      Slows near obstacles.<br>
+      Backs up if fully blocked.
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-label">MAX SPEED</div>
+    <div class="speed-row">
+      <input type="range" min="80" max="255" value="175"
+        oninput="setSpeed(this.value)">
+      <div class="speed-num" id="speedNumAuto">175</div>
+    </div>
+  </div>
+  <button class="e-stop" onclick="emergencyStop()">&#x23F9; EMERGENCY STOP</button>
+</div>
+
+<script>
+const SVC  = "12345678-1234-1234-1234-123456789012";
+const CHAR = "12345678-1234-1234-1234-123456789013";
+
+let device, characteristic;
+let isConnected = false;
+let sendQueue   = [];
+let isSending   = false;
+let holdTimer   = null;
+let activeEl    = null;
+let isRecording = false;
+
+// ── Connect ───────────────────────────────────────────────────
+async function connectBLE() {
+  try {
+    device = await navigator.bluetooth.requestDevice({
+      filters: [{ name: "RC Car" }],
+      optionalServices: [SVC]
+    });
+    device.addEventListener('gattserverdisconnected', onDisconnect);
+    await doConnect();
+  } catch(e) { console.error(e); }
+}
+
+async function doConnect() {
+  try {
+    const server  = await device.gatt.connect();
+    const service = await server.getPrimaryService(SVC);
+    characteristic = await service.getCharacteristic(CHAR);
+    isConnected = true;
+    setStatus(true);
+  } catch(e) {
+    console.error('Connect failed:', e);
+    setTimeout(doConnect, 2000);
+  }
+}
+
+function onDisconnect() {
+  isConnected    = false;
+  characteristic = null;
+  clearHold();
+  setStatus(false);
+  setTimeout(async () => {
+    try { await doConnect(); }
+    catch(e) { setTimeout(onDisconnect, 2000); }
+  }, 1500);
+}
+
+function setStatus(on) {
+  document.getElementById('dot').className = 'dot' + (on ? ' on' : '');
+  document.getElementById('statusText').innerText = on ? 'CONNECTED' : 'RECONNECTING...';
+  document.getElementById('connectBtn').style.display = on ? 'none' : 'block';
+}
+
+// ── Send queue ────────────────────────────────────────────────
+function send(cmd) {
+  // For movement commands, drop pending duplicates to stay fresh
+  if (['F','B','L','R','S'].includes(cmd)) {
+    sendQueue = sendQueue.filter(c => !['F','B','L','R','S'].includes(c));
+  }
+  sendQueue.push(cmd);
+  if (!isSending) flush();
+}
+
+async function flush() {
+  if (!characteristic || sendQueue.length === 0) { isSending = false; return; }
+  isSending = true;
+  const cmd = sendQueue.shift();
+  try {
+    await characteristic.writeValueWithoutResponse(
+      new TextEncoder().encode(cmd)
+    );
+  } catch(e) { console.warn('BLE write error:', e); }
+  isSending = false;
+  if (sendQueue.length > 0) requestAnimationFrame(flush);
+}
+
+// ── D-pad ─────────────────────────────────────────────────────
+function press(cmd, el) {
+  if (activeEl && activeEl !== el) forceRelease();
+  activeEl = el;
+  el.classList.add('active');
+  send(cmd);
+  clearInterval(holdTimer);
+  holdTimer = setInterval(() => send(cmd), 120);
+}
+
+function release(el) {
+  if (!el || el !== activeEl) return;
+  forceRelease();
+  send('S');
+}
+
+function forceRelease() {
+  clearInterval(holdTimer);
+  holdTimer = null;
+  if (activeEl) { activeEl.classList.remove('active'); activeEl = null; }
+}
+
+function clearHold() {
+  forceRelease();
+}
+
+// ── Mode switch ───────────────────────────────────────────────
+function switchMode(mode, tabEl) {
+  forceRelease();
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  tabEl.classList.add('active');
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('show'));
+  document.getElementById('panel-' + mode).classList.add('show');
+  send('MODE_' + mode);
+}
+
+// ── Speed ─────────────────────────────────────────────────────
+function setSpeed(val) {
+  const n1 = document.getElementById('speedNum');
+  const n2 = document.getElementById('speedNumAuto');
+  if (n1) n1.innerText = val;
+  if (n2) n2.innerText = val;
+  send('V' + val);
+}
+
+// ── ISD1820 ───────────────────────────────────────────────────
+function recStart(el) {
+  if (isRecording) return;
+  isRecording = true;
+  el.classList.add('active');
+  document.getElementById('recLabel').innerText  = 'RECORDING...';
+  document.getElementById('recStatus').innerText = 'Hold to record, release to stop';
+  send('REC_START');
+}
+
+function recStop(el) {
+  if (!isRecording) return;
+  isRecording = false;
+  el.classList.remove('active');
+  document.getElementById('recLabel').innerText  = 'HOLD REC';
+  document.getElementById('recStatus').innerText = 'Recording saved';
+  send('REC_STOP');
+  setTimeout(() => {
+    document.getElementById('recStatus').innerText = '';
+  }, 2000);
+}
+
+function playAudio(el) {
+  el.classList.add('active');
+  send('PLAY');
+}
+
+function playRelease(el) {
+  setTimeout(() => el.classList.remove('active'), 300);
+}
+
+// ── Emergency stop ────────────────────────────────────────────
+function emergencyStop() {
+  forceRelease();
+  send('S');
+  send('MODE_MANUAL');
+  switchMode('MANUAL', document.querySelectorAll('.tab')[0]);
+}
+</script>
+</body>
+</html>
