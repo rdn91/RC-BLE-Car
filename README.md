@@ -2,6 +2,8 @@
 
 An interactive, web-controlled Remote Control (RC) car driven by an **Arduino Uno R4 WiFi**, utilizing Bluetooth Low Energy (BLE) and an **ISD1820 Voice Playback Module** for custom audio/sound effects (e.g., horn, engine rev, or custom voice clips).
 
+<img src="carproject.png" width='300px' height='200px' alt="car photo">
+
 ---
 
 ## 🛠️ Hardware Components
