@@ -1,4 +1,3 @@
-# RC-BLE-Car
 # 🏎️ BLE RC Car with Audio Effects
 
 An interactive, web-controlled Remote Control (RC) car driven by an **Arduino Uno R4 WiFi**, utilizing Bluetooth Low Energy (BLE) and an **ISD1820 Voice Playback Module** for custom audio/sound effects (e.g., horn, engine rev, or custom voice clips).
