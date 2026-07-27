@@ -11,8 +11,8 @@ An interactive, web-controlled Remote Control (RC) car driven by an **Arduino Un
 * **Microcontroller:** Arduino Uno R4 WiFi (Native BLE support)
 * **Motor Driver:** L293D Motor Shield
 * **Audio Module:** ISD1820 Voice Playback Module with Mini Speaker
-* **Chassis:** 2WD / 4WD Smart Car Chassis Kit
-* **Power Source:** 2x 18650 Li-ion Batteries (or 6–9V battery pack)
+* **Chassis:** 4WD Car Chassis Kit
+* **Power Source:** 2x 18650 Li-ion Batteries
 
 ---
 
